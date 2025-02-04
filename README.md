@@ -46,7 +46,7 @@ Ctrl-S    :   Save, requires input of file name, if file didn't exist
 Ctrl-F    :   Search by pattern, Esc - exit from Search, Enter and Arrows to interact searching
 Ctrl-N    :   Forward Search by pattern after Ctrl-F. Esc - exit from Search, works after Ctrl-F only
 Ctrl-R    :   Backward Search by pattern after Ctrl-F. Esc - exit from Search, works after Ctrl-F only
-Ctrl-J    :   Global replacement of \u0441haracter combinations, Input Search and Replace patterns, Esc to cancel, Enter to input
+Ctrl-J    :   Global replacement of character combinations, Input Search and Replace patterns, Esc to cancel, Enter to input
 Ctrl-G    :   Go to line Number, requires input the line number
 Ctrl-B    :   Hide/Show line numbering
 Ctrl-E    :   Flip line upwards
