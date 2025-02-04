@@ -41,21 +41,33 @@ mel -t | --use-tabs [file_name]
 ## Keybindings
 The key combinations chosen here are the ones that fit the best for me.
 ```
-Ctrl-Q : Exit
-Ctrl-F : Search text (ESC, arrows and enter to interact once searching)
-Ctrl-G : Go to line Number
-Ctrl-B   Hide/Show line numbering
-Ctrl-S : Save
-Ctrl-E : Flip line upwards
-Ctrl-D : Flip line downwards
-Ctrl-C : Copy line
-Ctrl-X : Cut line
-Ctrl-V : Paste line
-Ctrl-Z : Undo
-Ctrl-Y : Redo
-Ctrl-P : Pause tte (type "fg" to resume)
-Ctrl-W : Retrieve Ollama LLM response
-Ctrl-H : Toggle help screen
+Ctrl-Q    :   Exit, 3 times click Ctrl-Q if file was changed without saving
+Ctrl-S    :   Save, requires input of file name, if file didn't exist
+Ctrl-F    :   Search by pattern, Esc - exit from Search, Enter and Arrows to interact searching
+Ctrl-N    :   Forward Search by pattern after Ctrl-F. Esc - exit from Search, works after Ctrl-F only
+Ctrl-R    :   Backward Search by pattern after Ctrl-F. Esc - exit from Search, works after Ctrl-F only
+Ctrl-J    :   Global replacement of character combinations, Input Search and Replace patterns, Esc to cancel, Enter to input
+Ctrl-G    :   Go to line Number, requires input the line number
+Ctrl-B    :   Hide/Show line numbering
+Ctrl-E    :   Flip line upwards
+Ctrl-D    :   Flip line downwards
+Ctrl-C    :   Copy line
+Ctrl-X    :   Cut line
+Ctrl-V    :   Paste line
+Ctrl-Z    :   Undo
+Ctrl-Y    :   Redo
+Ctrl-P    :   Pause mel (type "fg" to resume)
+Ctrl-W    :   Retrieve Ollama LLM response
+Ctrl-H    :   Toggle this help screen
+Home      :   Move the cursor to the beginning of the line
+End       :   Move cursor to end of line
+PgUp      :   Up page scroll
+PgDn      :   Down page scroll
+Up        :   Move cursor up one position
+Down      :   Move cursor down one position
+Left      :   Move cursor left one position
+Right     :   Move cursor right one position
+Backspace :   Delete character
 ```
 
 ## License
