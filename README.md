@@ -20,6 +20,13 @@ sudo mv mel /bin/
 sudo mv mel /usr/bin/
 sudo chmod +x /usr/local/bin/mel
 ```
+### Uninstall
+```
+sudo rm /usr/local/bin/mel
+sudo rm mel /bin/mel/
+sudo rm mel /usr/bin/mel
+```
+
 
 ## Usage
 ```
