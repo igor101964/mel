@@ -1,4 +1,4 @@
-# mel (last version 0.2.0, 01/01/2025)
+# mel (last version 0.2.0, 02/01/2025)
 
 mel (mini embedded light editor for linux, especially build for linux and unix, but definitely it'll work on other platforms with some exceptions, may be) is a terminal based text editor written in C from scratch, trying to be very minimalistic and dependency independent (it's not even using **curses**) with syntax highlighting in support of the following languages: C, C++, Java, Bash, Mshell, Python, PHP, JavaScript, JSON, XML, SQL, Ruby, Go. It was created specifically for resource-intensive environments like small containers, high-load AMI's (aws), small POD's in kubernetes for various cloud platforms (tested on AWS, GCP, OCI) and IOT solutions (embedded C) on various ARM64 bit architectures and different CPU's (like Convex, etc.), as well as on standard Linux and other platforms based on different CPU's (Intel, AMD, etc.) The code is distributed under GNU license ans is available for anyone to incorporate and implement in solutions that do not violate the GNU license.
 
