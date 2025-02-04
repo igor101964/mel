@@ -10,7 +10,6 @@ mel (mini embedded light editor for linux, especially build for linux and unix, 
 git clone https://github.com/igor101964/mel.git
 cd mel/
 make
-make install
 ```
 ### Downloading executable
 Download it from (https://github.com/igor101964/mel), then
@@ -19,12 +18,14 @@ sudo mv mel /usr/local/bin/
 sudo mv mel /bin/
 sudo mv mel /usr/bin/
 sudo chmod +x /usr/local/bin/mel
+sudo chmod +x /usr/bin/mel
+sudo chmod +x /bin/mel
 ```
 ### Uninstall
 ```
 sudo rm /usr/local/bin/mel
-sudo rm mel /bin/mel/
-sudo rm mel /usr/bin/mel
+sudo rm /bin/mel
+sudo rm /usr/bin/mel
 ```
 
 
