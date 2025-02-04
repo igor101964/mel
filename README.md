@@ -74,7 +74,7 @@ Backspace :   Delete character
 ```
 Supports highlighting for C,C++,Java,Bash,Mshell,Python,PHP,Javascript,JSON,XML,SQL,Ruby,Go.
 License: Public domain libre software GPL3,v.0.2.0, 2025
-Initial coding: Igor Lukyanov, igor.lukyanov@appservgrid.com
+Coding: Igor Lukyanov, igor.lukyanov@appservgrid.com
 For now, usage of UTF-8 is recommended.
 ```
 	
