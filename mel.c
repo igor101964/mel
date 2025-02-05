@@ -1124,7 +1124,7 @@ void editorInsertRow(int at, const char* s, size_t len) {
         return;
     }
 
-    // Копирование содержимого
+    // Content copying
     if (s && len > 0) {
         memcpy(ec.row[at].chars, s, len);
     }
