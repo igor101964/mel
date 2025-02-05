@@ -9,6 +9,7 @@ mel (mini embedded light editor for linux, especially build for linux and unix, 
 ```
 git clone https://github.com/igor101964/mel.git
 cd mel/
+install dependencies (depends on OS): curl, libcurl4-gnutls-dev, libcurl4-openssl-dev, libjson-c-dev
 make
 ```
 ### Downloading executable
