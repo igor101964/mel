@@ -1058,16 +1058,16 @@ int editorRowRenderXToCursorX(editor_row* row, int render_x) {
 void editorUpdateRow(editor_row* row) {
     if (!row || !row->chars) return;
 
-    // Подсчёт табуляций
+    // Counting tabs
     int tabs = 0;
     for (int j = 0; j < row->size; j++) {
         if (row->chars[j] == '\t') tabs++;
     }
 
-    // Освобождение старого render буфера
+    // Freeing the old render buffer
     free(row->render);
 
-    // Выделение памяти для нового render буфера
+    // Allocating memory for the new render buffer
     size_t render_size = row->size + tabs * (MEL_TAB_STOP - 1) + 1;
     row->render = malloc(render_size);
     if (!row->render) {
@@ -1075,7 +1075,7 @@ void editorUpdateRow(editor_row* row) {
         return;
     }
 
-    // Рендеринг содержимого
+    // Rendering of content
     int idx = 0;
     for (int j = 0; j < row->size; j++) {
         if (row->chars[j] == '\t') {
@@ -1090,16 +1090,16 @@ void editorUpdateRow(editor_row* row) {
     row->render[idx] = '\0';
     row->render_size = idx;
 
-    // Обновление подсветки синтаксиса
+    // Syntax highlighting update
     editorUpdateSyntax(row);
 }
 
 
 void editorInsertRow(int at, const char* s, size_t len) {
-    // Проверка валидности позиции вставки
+    // Checking the validity of the insertion position
     if (at < 0 || at > ec.num_rows) return;
 
-    // Выделение памяти для новой строки с проверкой
+    // Allocation of memory for new line with check
     editor_row* new_rows = realloc(ec.row, sizeof(editor_row) * (ec.num_rows + 1));
     if (!new_rows) {
         editorSetStatusMessage("Failed to allocate memory for new row");
@@ -1107,15 +1107,15 @@ void editorInsertRow(int at, const char* s, size_t len) {
     }
     ec.row = new_rows;
 
-    // Сдвиг существующих строк
+    // Shift existing lines
     memmove(&ec.row[at + 1], &ec.row[at], sizeof(editor_row) * (ec.num_rows - at));
     
-    // Обновление индексов для сдвинутых строк
+    // Updating indexes for shifted rows
     for (int j = at + 1; j <= ec.num_rows; j++) {
         ec.row[j].idx = j;
     }
 
-    // Инициализация новой строки
+    // Initializing a new line
     ec.row[at].idx = at;
     ec.row[at].size = len;
     ec.row[at].chars = malloc(len + 1);
@@ -1130,16 +1130,16 @@ void editorInsertRow(int at, const char* s, size_t len) {
     }
     ec.row[at].chars[len] = '\0';
 
-    // Инициализация render буфера
+    // Initializing the render buffer
     ec.row[at].render = NULL;
     ec.row[at].render_size = 0;
     ec.row[at].highlight = NULL;
     ec.row[at].hl_open_comment = 0;
 
-    // Обновление строки с проверками
+    // Update line with checks
     editorUpdateRow(&ec.row[at]);
     if (!ec.row[at].render) {
-        // Если не удалось создать render буфер, очищаем строку
+        // If it was not possible to create a render buffer, clear the line
         free(ec.row[at].chars);
         memmove(&ec.row[at], &ec.row[at + 1], sizeof(editor_row) * (ec.num_rows - at));
         return;
@@ -1245,10 +1245,10 @@ void editorInsertNewline() {
         editor_row* row = &ec.row[ec.cursor_y];
         if (!row || !row->chars) return;
 
-        // Создание новой строки с оставшимся содержимым
+        // Create a new line with the remaining content
         editorInsertRow(ec.cursor_y + 1, &row->chars[ec.cursor_x], row->size - ec.cursor_x);
         if (ec.cursor_y + 1 < ec.num_rows) {
-            row = &ec.row[ec.cursor_y];  // Обновляем указатель после вставки
+            row = &ec.row[ec.cursor_y];  // Update the pointer after insertion
             row->size = ec.cursor_x;
             row->chars[row->size] = '\0';
             editorUpdateRow(row);
@@ -1303,7 +1303,7 @@ void editorGoToLine() {
 void editorRowAppendString(editor_row* row, char* s, size_t len) {
     if (!row || !s) return;
 
-    // Выделение памяти для расширенной строки
+    // Allocating memory for extended string
     char* new_chars = realloc(row->chars, row->size + len + 1);
     if (!new_chars) {
         editorSetStatusMessage("Failed to allocate memory for append");
@@ -1311,7 +1311,7 @@ void editorRowAppendString(editor_row* row, char* s, size_t len) {
     }
     row->chars = new_chars;
 
-    // Копирование новой строки
+    // Copy new line
     memcpy(&row->chars[row->size], s, len);
     row->size += len;
     row->chars[row->size] = '\0';
@@ -1359,18 +1359,18 @@ void editorRowInsertString(editor_row* row, int at, char* str) {
 /*** Editor operations ***/
 
 void editorInsertChar(int c) {
-    if (c <= 0) return;  // Проверка валидности символа
+    if (c <= 0) return;  // Checking the validity of a symbol
 
-    // Создание новой строки если курсор на тильде
+    // Creating a new line if the cursor is on a tilde
     if (ec.cursor_y == ec.num_rows) {
         editorInsertRow(ec.num_rows, "", 0);
-        if (ec.cursor_y != ec.num_rows - 1) return;  // Проверка успешности вставки
+        if (ec.cursor_y != ec.num_rows - 1) return;  // Checking the success of the insertion
     }
 
     editor_row* row = &ec.row[ec.cursor_y];
     if (!row || !row->chars) return;
 
-    // Выделение памяти для нового символа
+    // Allocating memory for a new symbol
     char* new_chars = realloc(row->chars, row->size + 2);
     if (!new_chars) {
         editorSetStatusMessage("Failed to allocate memory for character");
@@ -1378,13 +1378,13 @@ void editorInsertChar(int c) {
     }
     row->chars = new_chars;
 
-    // Вставка символа
+    // Inserting a symbol
     memmove(&row->chars[ec.cursor_x + 1], &row->chars[ec.cursor_x], row->size - ec.cursor_x);
     row->size++;
     row->chars[ec.cursor_x] = c;
     row->chars[row->size] = '\0';
 
-    // Обновление строки
+    // Row update
     editorUpdateRow(row);
     ec.cursor_x++;
     ec.dirty++;
