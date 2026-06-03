@@ -192,13 +192,13 @@ enum editor_key {
     HOME_KEY,
     END_KEY,
     DEL_KEY,
-	CTRL_ARROW_LEFT,    // Ctrl+стрелка влево
-    CTRL_ARROW_RIGHT,   // Ctrl+стрелка вправо
-    KEY_F5        = 0x10FFFE, // F5 — отправить промпт
-    MEL_UTF8_CHAR = 0x10FFFF  // Многобайтовый UTF-8 символ
+	CTRL_ARROW_LEFT,    // Ctrl+Arrow Left
+    CTRL_ARROW_RIGHT,   // Ctrl+Arrow Right
+    KEY_F5        = 0x10FFFE, // F5 — send prompt
+    MEL_UTF8_CHAR = 0x10FFFF  // Multi-byte UTF-8 character
 };
 
-/* Глобальный буфер для pending UTF-8 символа */
+/* Global buffer for pending UTF-8 character */
 char g_utf8_pending[8] = {0};
 int  g_utf8_pending_len = 0;
 
@@ -210,7 +210,7 @@ static char   g_prompt_tmp_path[256] = "";
 static struct editor_config g_saved_ec;
 static int    g_saved_ec_valid  = 0;
 
-/* Режим ввода промпта для LLM */
+/* LLM prompt input mode */
 
 enum editor_highlight {
     HL_NORMAL = 0,
@@ -566,7 +566,7 @@ void editorReplace();
 // Add this to the declarations section where other function prototypes are declared
 void editorInsertRow(int at, const char* s, size_t len);
 
-// Добавить здесь:
+// Add here:
 int isWordSeparator(char c) {
     return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[]{}:;\"'\\", c) != NULL;
 }
@@ -639,7 +639,7 @@ int editorReadKey() {
     // Check escape sequences, if first byte
     // is an escape character then...
     if (c == '\x1b') {
-        char seq[5];  // Увеличиваем размер буфера для последовательностей с модификаторами
+        char seq[5];  // Increase buffer size for sequences with modifiers
 
         if (read(STDIN_FILENO, &seq[0], 1) != 1)
             return '\x1b';
@@ -675,15 +675,15 @@ int editorReadKey() {
                         // Page Up and Page Down send '\x1b', '[', '5' or '6' and '~'.
                         case '5': return PAGE_UP;
                         case '6': return PAGE_DOWN;
-                        case '5'+8: return KEY_F5; /* никогда не сработает */
+                        case '5'+8: return KEY_F5; /* will never trigger */
 
                     }
                 } else if (seq[2] == ';') {
-                    // Обработка модификаторов типа Ctrl, Alt и т.д.
+                    // Handle modifiers like Ctrl, Alt etc.
                     if (read(STDIN_FILENO, &seq[3], 1) != 1) return '\x1b';
                     if (read(STDIN_FILENO, &seq[4], 1) != 1) return '\x1b';
                     
-                    // Проверяем, что это Ctrl (модификатор 5)
+                    // Check that this is Ctrl (modifier 5)
                     if (seq[3] == '5') {
                         switch (seq[4]) {
                             case 'C': return CTRL_ARROW_RIGHT;
@@ -716,16 +716,16 @@ int editorReadKey() {
         }
         return '\x1b';
     } else {
-        /* UTF-8: если это многобайтовый символ — читаем остальные байты */
+        /* UTF-8: if multi-byte character — read remaining bytes */
         unsigned char uc = (unsigned char)c;
         if (uc >= 0x80) {
             int nbytes = 0;
             if ((uc & 0xE0) == 0xC0) nbytes = 2;
             else if ((uc & 0xF0) == 0xE0) nbytes = 3;
             else if ((uc & 0xF8) == 0xF0) nbytes = 4;
-            else return c; /* continuation byte — пропускаем */
+            else return c; /* continuation byte — skip */
 
-            /* Храним многобайтовый символ в статическом буфере */
+            /* Store multi-byte character in static buffer */
             static char utf8_buf[8];
             utf8_buf[0] = c;
             for (int i = 1; i < nbytes; i++) {
@@ -734,7 +734,7 @@ int editorReadKey() {
                 utf8_buf[i] = cb;
             }
             utf8_buf[nbytes] = '\0';
-            /* Возвращаем специальный код — обрабатываем в editorProcessKeypress */
+            /* Return special code — handled in editorProcessKeypress */
             extern char g_utf8_pending[8];
             extern int  g_utf8_pending_len;
             memcpy(g_utf8_pending, utf8_buf, nbytes + 1);
@@ -1006,7 +1006,7 @@ void editorUpdateSyntax(editor_row* row) {
     int i = 0;
     while (i < row->render_size) {
         char c = row->render[i];
-        /* UTF-8: continuation bytes получают тот же highlight что первый байт */
+        /* UTF-8: continuation bytes get the same highlight as the lead byte */
         if (utf8_is_continuation((unsigned char)c)) {
             row->highlight[i] = (i > 0) ? row->highlight[i-1] : HL_NORMAL;
             i++;
@@ -1168,30 +1168,30 @@ void editorSelectSyntaxHighlight() {
    UTF-8 support helpers
    ══════════════════════════════════════════════════ */
 
-/* Количество байт в UTF-8 последовательности по первому байту */
+/* Number of bytes in UTF-8 sequence by lead byte */
 static int utf8_byte_count(unsigned char c) {
     if (c < 0x80) return 1;          /* ASCII */
-    if ((c & 0xE0) == 0xC0) return 2; /* 2-byte: русский, латиница с диакритикой */
-    if ((c & 0xF0) == 0xE0) return 3; /* 3-byte: CJK, прочие */
+    if ((c & 0xE0) == 0xC0) return 2; /* 2-byte: Cyrillic, Latin with diacritics */
+    if ((c & 0xF0) == 0xE0) return 3; /* 3-byte: CJK and others */
     if ((c & 0xF8) == 0xF0) return 4; /* 4-byte: emoji */
-    return 1; /* continuation byte — не должно быть здесь */
+    return 1; /* continuation byte — should not appear here */
 }
 
-/* Является ли байт continuation byte UTF-8 (10xxxxxx) */
+/* Check if byte is a UTF-8 continuation byte (10xxxxxx) */
 static int utf8_is_continuation(unsigned char c) {
     return (c & 0xC0) == 0x80;
 }
 
-/* Ширина UTF-8 символа на терминале (1 или 2 колонки).
-   Для простоты: ASCII=1, всё остальное=1 (терминал сам справится).
-   CJK широкие символы пока не учитываем. */
+/* Terminal display width of UTF-8 character (1 or 2 columns).
+   Simplified: ASCII=1, everything else=1 (terminal handles it).
+   Wide CJK characters not yet accounted for. */
 static int utf8_char_width(const char *s) __attribute__((unused));
 static int utf8_char_width(const char *s) {
     (void)s;
     return 1;
 }
 
-/* Перейти к началу предыдущего UTF-8 символа */
+/* Move to start of previous UTF-8 character */
 static int utf8_prev_char_len(const char *chars, int pos) {
     if (pos <= 0) return 0;
     int len = 1;
@@ -1200,7 +1200,7 @@ static int utf8_prev_char_len(const char *chars, int pos) {
     return len;
 }
 
-/* Длина UTF-8 символа начиная с позиции pos */
+/* Length of UTF-8 character starting at position pos */
 static int utf8_char_len_at(const char *chars, int pos, int size) {
     if (pos >= size) return 0;
     int n = utf8_byte_count((unsigned char)chars[pos]);
@@ -1220,7 +1220,7 @@ int editorRowCursorXToRenderX(editor_row* row, int cursor_x) {
             render_x++;
             j++;
         } else {
-            /* UTF-8: пропускаем все байты символа, рендер-позиция +1 */
+            /* UTF-8: skip all bytes of character, render position +1 */
             int clen = utf8_char_len_at(row->chars, j, row->size);
             if (clen < 1) clen = 1;
             j += clen;
@@ -1255,16 +1255,16 @@ int editorRowRenderXToCursorX(editor_row* row, int render_x) {
 void editorUpdateRow(editor_row* row) {
     if (!row || !row->chars) return;
 
-    // Подсчёт табуляций
+    // Count tabs
     int tabs = 0;
     for (int j = 0; j < row->size; j++) {
         if (row->chars[j] == '\t') tabs++;
     }
 
-    // Освобождение старого render буфера
+    // Free old render buffer
     free(row->render);
 
-    // Выделение памяти для нового render буфера
+    // Allocate new render buffer
     size_t render_size = row->size + tabs * (MEL_TAB_STOP - 1) + 1;
     row->render = malloc(render_size);
     if (!row->render) {
@@ -1272,7 +1272,7 @@ void editorUpdateRow(editor_row* row) {
         return;
     }
 
-    // Рендеринг содержимого
+    // Render content
     int idx = 0;
     for (int j = 0; j < row->size; j++) {
         if (row->chars[j] == '\t') {
@@ -1287,16 +1287,16 @@ void editorUpdateRow(editor_row* row) {
     row->render[idx] = '\0';
     row->render_size = idx;
 
-    // Обновление подсветки синтаксиса
+    // Update syntax highlighting
     editorUpdateSyntax(row);
 }
 
 
 void editorInsertRow(int at, const char* s, size_t len) {
-    // Проверка валидности позиции вставки
+    // Validate insert position
     if (at < 0 || at > ec.num_rows) return;
 
-    // Выделение памяти для новой строки с проверкой
+    // Allocate new row with check
     editor_row* new_rows = realloc(ec.row, sizeof(editor_row) * (ec.num_rows + 1));
     if (!new_rows) {
         editorSetStatusMessage("Failed to allocate memory for new row");
@@ -1304,15 +1304,15 @@ void editorInsertRow(int at, const char* s, size_t len) {
     }
     ec.row = new_rows;
 
-    // Сдвиг существующих строк
+    // Shift existing rows
     memmove(&ec.row[at + 1], &ec.row[at], sizeof(editor_row) * (ec.num_rows - at));
     
-    // Обновление индексов для сдвинутых строк
+    // Update indices for shifted rows
     for (int j = at + 1; j <= ec.num_rows; j++) {
         ec.row[j].idx = j;
     }
 
-    // Инициализация новой строки
+    // Initialize new row
     ec.row[at].idx = at;
     ec.row[at].size = len;
     ec.row[at].chars = malloc(len + 1);
@@ -1321,22 +1321,22 @@ void editorInsertRow(int at, const char* s, size_t len) {
         return;
     }
 
-    // Копирование содержимого
+    // Copy content
     if (s && len > 0) {
         memcpy(ec.row[at].chars, s, len);
     }
     ec.row[at].chars[len] = '\0';
 
-    // Инициализация render буфера
+    // Initialize render buffer
     ec.row[at].render = NULL;
     ec.row[at].render_size = 0;
     ec.row[at].highlight = NULL;
     ec.row[at].hl_open_comment = 0;
 
-    // Обновление строки с проверками
+    // Update row with checks
     editorUpdateRow(&ec.row[at]);
     if (!ec.row[at].render) {
-        // Если не удалось создать render буфер, очищаем строку
+        // If render buffer failed, clear the row
         free(ec.row[at].chars);
         memmove(&ec.row[at], &ec.row[at + 1], sizeof(editor_row) * (ec.num_rows - at));
         return;
@@ -1442,10 +1442,10 @@ void editorInsertNewline() {
         editor_row* row = &ec.row[ec.cursor_y];
         if (!row || !row->chars) return;
 
-        // Создание новой строки с оставшимся содержимым
+        // Create new row with remaining content
         editorInsertRow(ec.cursor_y + 1, &row->chars[ec.cursor_x], row->size - ec.cursor_x);
         if (ec.cursor_y + 1 < ec.num_rows) {
-            row = &ec.row[ec.cursor_y];  // Обновляем указатель после вставки
+            row = &ec.row[ec.cursor_y];  // Refresh pointer after insert
             row->size = ec.cursor_x;
             row->chars[row->size] = '\0';
             editorUpdateRow(row);
@@ -1500,7 +1500,7 @@ void editorGoToLine() {
 void editorRowAppendString(editor_row* row, char* s, size_t len) {
     if (!row || !s) return;
 
-    // Выделение памяти для расширенной строки
+    // Allocate memory for extended row
     char* new_chars = realloc(row->chars, row->size + len + 1);
     if (!new_chars) {
         editorSetStatusMessage("Failed to allocate memory for append");
@@ -1508,7 +1508,7 @@ void editorRowAppendString(editor_row* row, char* s, size_t len) {
     }
     row->chars = new_chars;
 
-    // Копирование новой строки
+    // Copy new row
     memcpy(&row->chars[row->size], s, len);
     row->size += len;
     row->chars[row->size] = '\0';
@@ -1520,7 +1520,7 @@ void editorRowAppendString(editor_row* row, char* s, size_t len) {
 void editorRowDelChar(editor_row* row, int at) {
     if (at < 0 || at >= row->size)
         return;
-    /* UTF-8: определяем длину символа который удаляем */
+    /* UTF-8: determine length of character being deleted */
     int char_len = utf8_char_len_at(row->chars, at, row->size);
     if (char_len < 1) char_len = 1;
     memmove(&row->chars[at], &row->chars[at + char_len], row->size - at - char_len + 1);
@@ -1557,18 +1557,18 @@ void editorRowInsertString(editor_row* row, int at, char* str) {
 /*** Editor operations ***/
 
 void editorInsertChar(int c) {
-    if (c <= 0) return;  // Проверка валидности символа
+    if (c <= 0) return;  // Validate character
 
-    // Создание новой строки если курсор на тильде
+    // Create new row if cursor is on tilde
     if (ec.cursor_y == ec.num_rows) {
         editorInsertRow(ec.num_rows, "", 0);
-        if (ec.cursor_y != ec.num_rows - 1) return;  // Проверка успешности вставки
+        if (ec.cursor_y != ec.num_rows - 1) return;  // Verify insert succeeded
     }
 
     editor_row* row = &ec.row[ec.cursor_y];
     if (!row || !row->chars) return;
 
-    // Выделение памяти для нового символа
+    // Allocate memory for new character
     char* new_chars = realloc(row->chars, row->size + 2);
     if (!new_chars) {
         editorSetStatusMessage("Failed to allocate memory for character");
@@ -1576,13 +1576,13 @@ void editorInsertChar(int c) {
     }
     row->chars = new_chars;
 
-    // Вставка символа
+    // Insert character
     memmove(&row->chars[ec.cursor_x + 1], &row->chars[ec.cursor_x], row->size - ec.cursor_x);
     row->size++;
     row->chars[ec.cursor_x] = c;
     row->chars[row->size] = '\0';
 
-    // Обновление строки
+    // Update row
     editorUpdateRow(row);
     ec.cursor_x++;
     ec.dirty++;
@@ -1599,7 +1599,7 @@ void editorDelChar() {
 
     editor_row* row = &ec.row[ec.cursor_y];
     if (ec.cursor_x > 0) {
-        /* UTF-8: откатываемся назад на всю длину символа перед курсором */
+        /* UTF-8: step back by full length of character before cursor */
         int back = utf8_prev_char_len(row->chars, ec.cursor_x);
         if (back < 1) back = 1;
         int del_at = ec.cursor_x - back;
@@ -1707,7 +1707,7 @@ void editorSave() {
     FILE* fp = fopen(ec.file_name, "w");
     if (!fp) {
         free(buf);
-        /* Директория не существует или нет прав — спрашиваем новый путь */
+        /* Directory does not exist or no permissions — prompt for new path */
         editorSetStatusMessage("Can't save: %s — enter new path", strerror(errno));
         char* new_name = editorPrompt("Save as: %s (ESC to cancel)", NULL);
         if (new_name == NULL) {
@@ -1908,7 +1908,7 @@ void execute(Action* action) {
                     editorRowInsertString(&ec.row[ec.cursor_y], ec.cursor_x, action->string);
                     ec.cursor_x += strlen(action->string);
                 } else {
-                    /* Создаём новую строку и вставляем — работает для UTF-8 */
+                    /* Create new row and insert — works for UTF-8 */
                     editorInsertRow(ec.num_rows, action->string, strlen(action->string));
                     ec.cursor_x = strlen(action->string);
                 }
@@ -2139,14 +2139,14 @@ bool concatWithLastAction(ActionType t, char* str) {
        ec.actions->current->action->cpos_y == ec.cursor_y &&
        (int)(ec.actions->current->action->cpos_x + strlen(ec.actions->current->action->string)) == ec.cursor_x
     ) {
-        /* UTF-8: для многобайтовых символов используем editorRowInsertString */
+        /* UTF-8: for multi-byte characters use editorRowInsertString */
         if (ec.cursor_y < ec.num_rows) {
             editorRowInsertString(&ec.row[ec.cursor_y], ec.cursor_x, str);
             ec.cursor_x += (int)strlen(str);
             ec.dirty++;
             editorUpdateRow(&ec.row[ec.cursor_y]);
         } else {
-            /* строка не существует — создаём */
+            /* row does not exist — create it */
             editorInsertRow(ec.num_rows, str, strlen(str));
             ec.cursor_y = ec.num_rows - 1;
             ec.cursor_x = (int)strlen(str);
@@ -2361,7 +2361,7 @@ void editorDrawRows(struct a_buf* ab) {
             int len = row->render_size - ec.col_offset;
             if (len < 0) len = 0;
             
-            /* max_len в байтах: для UTF-8 один символ до 4 байт */
+            /* max_len in bytes: UTF-8 character up to 4 bytes */
             int max_len = (ec.screen_cols - (ec.show_line_numbers ? 8 : 0)) * 4;
             if (len > max_len) len = max_len;
 
@@ -2389,11 +2389,11 @@ void editorDrawRows(struct a_buf* ab) {
                     char colbuf[16];
                     snprintf(colbuf, sizeof(colbuf), "\x1b[%dm", color);
                     abufAppend(ab, colbuf, strlen(colbuf));
-                    /* UTF-8: выводим все байты символа за один раз */
+                    /* UTF-8: output all bytes of character at once */
                     int clen = utf8_char_len_at(c + j, 0, len - j);
                     if (clen < 1) clen = 1;
                     abufAppend(ab, &c[j], clen);
-                    /* Пропускаем continuation байты — они уже выведены */
+                    /* Skip continuation bytes — already output */
                     j += clen - 1;
                 }
                 current_pos++;
@@ -2509,7 +2509,7 @@ void editorMoveCursor(int key) {
     switch (key) {
         case ARROW_LEFT:
             if (ec.cursor_x > 0) {
-                /* UTF-8: откатываемся на всю длину предыдущего символа */
+                /* UTF-8: step back by full length of previous character */
                 int back = utf8_prev_char_len(row ? row->chars : "", ec.cursor_x);
                 ec.cursor_x -= (back > 0 ? back : 1);
             } else if (ec.cursor_y > 0) {
@@ -2519,7 +2519,7 @@ void editorMoveCursor(int key) {
             break;
         case ARROW_RIGHT:
             if (row && ec.cursor_x < row->size) {
-                /* UTF-8: шагаем вперёд на всю длину текущего символа */
+                /* UTF-8: step forward by full length of current character */
                 int fwd = utf8_char_len_at(row->chars, ec.cursor_x, row->size);
                 ec.cursor_x += (fwd > 0 ? fwd : 1);
             } else if (row && ec.cursor_x == row->size && ec.cursor_y < ec.num_rows - 1) {
@@ -2539,16 +2539,16 @@ void editorMoveCursor(int key) {
             break;
         case CTRL_ARROW_LEFT:
             if (ec.cursor_x > 0) {
-                // Сначала перемещаемся до начала текущего слова
+                // First move to start of current word
                 while (ec.cursor_x > 0 && (row && isWordSeparator(row->chars[ec.cursor_x - 1]))) {
                     ec.cursor_x--;
                 }
-                // Затем перемещаемся до конца предыдущего слова
+                // Then move to end of previous word
                 while (ec.cursor_x > 0 && (row && !isWordSeparator(row->chars[ec.cursor_x - 1]))) {
                     ec.cursor_x--;
                 }
             } else if (ec.cursor_y > 0) {
-                // Перейти к концу предыдущей строки
+                // Move to end of previous line
                 ec.cursor_y--;
                 ec.cursor_x = ec.row[ec.cursor_y].size;
             }
@@ -2556,16 +2556,16 @@ void editorMoveCursor(int key) {
             
         case CTRL_ARROW_RIGHT:
             if (row && ec.cursor_x < row->size) {
-                // Перемещаемся до конца текущего слова
+                // Move to end of current word
                 while (ec.cursor_x < row->size && !isWordSeparator(row->chars[ec.cursor_x])) {
                     ec.cursor_x++;
                 }
-                // Затем перемещаемся до начала следующего слова
+                // Then move to start of next word
                 while (ec.cursor_x < row->size && isWordSeparator(row->chars[ec.cursor_x])) {
                     ec.cursor_x++;
                 }
             } else if (row && ec.cursor_x == row->size && ec.cursor_y < ec.num_rows - 1) {
-                // Перейти к началу следующей строки
+                // Move to start of next line
                 ec.cursor_y++;
                 ec.cursor_x = 0;
             }
@@ -2686,7 +2686,7 @@ void editorProcessKeypress() {
             }
             break;
         case CTRL_KEY('t'):
-            /* Ctrl-T — вставка из системного буфера обмена (xclip/xsel/pbpaste) */
+            /* Ctrl-T — paste from system clipboard (xclip/xsel/pbpaste) */
             {
                 FILE *xfp = popen("xclip -selection clipboard -o 2>/dev/null "
                                   "|| xsel --clipboard --output 2>/dev/null "
@@ -2698,7 +2698,7 @@ void editorProcessKeypress() {
                     clip[clen] = '\0';
                     pclose(xfp);
                     if (clen > 0) {
-                        /* Вставляем построчно */
+                        /* Insert line by line */
                         char *ln, *sp;
                         int first = 1;
                         for (ln = strtok_r(clip, "\n", &sp); ln;
@@ -2729,8 +2729,8 @@ void editorProcessKeypress() {
         case ARROW_DOWN:
         case ARROW_LEFT:
         case ARROW_RIGHT:
-        case CTRL_ARROW_LEFT:     // Добавляем обработку Ctrl+стрелка влево
-        case CTRL_ARROW_RIGHT:    // и Ctrl+стрелка вправо
+        case CTRL_ARROW_LEFT:     // Handle Ctrl+Arrow Left
+        case CTRL_ARROW_RIGHT:    // and Ctrl+Arrow Right
             editorMoveCursor(c);
             break;
         case PAGE_UP:
@@ -2810,7 +2810,7 @@ void editorProcessKeypress() {
             redo();
             break;
         case MEL_UTF8_CHAR:
-            /* UTF-8 многобайтовый символ — вставляем все байты */
+            /* UTF-8 multi-byte character — insert all bytes */
             makeAction(InsertChar, strndup(g_utf8_pending, g_utf8_pending_len));
             break;
         default:
@@ -2837,7 +2837,7 @@ void editorDisplayHelpPage() {
     printf("Ctrl-F        Search by pattern, Esc - exit from Search, works after Ctrl-F only\r\n");
 	printf("Ctrl-N        Forward Search by pattern after Ctrl-F. Esc - exit from Search, works after Ctrl-F only\r\n");
 	printf("Ctrl-R        Backward Search by pattern after Ctrl-F. Esc - exit from Search, Enter and Arrows to interact\r\n");
-	printf("Ctrl-J        Global replacement of сharacter combinations, Input Search and Replace patterns, Esc to cancel, Enter to input\r\n");
+	printf("Ctrl-J        Global replacement of character combinations, Input Search and Replace patterns, Esc to cancel, Enter to input\r\n");
 	printf("Ctrl-G        Go to line Number, requires input the line number\r\n");
 	printf("Ctrl-B        Hide/Show line numbering\r\n");
     printf("Ctrl-E        Flip line upwards\r\n");
@@ -2887,22 +2887,22 @@ void editorDisplayHelpPage() {
 
 /* ══════════════════════════════════════════════════
    Ollama via mshell pipe (ollama1 / ollama2 / ollama3)
-   Ctrl-W: спрашивает модель (1/2/3) и промпт,
-   запускает ollama1/2/3 "<prompt>" через popen,
-   вставляет ответ в буфер в позицию курсора.
+   Ctrl-W: asks for model (1/2/3) and prompt,
+   runs ollama1/2/3 "<prompt>" via popen,
+   inserts response into buffer at cursor position.
    ══════════════════════════════════════════════════ */
 
 /* ══════════════════════════════════════════════════
-   LLM Prompt Mode — открываем temp файл для ввода промпта
-   F5 отправляет, ESC отменяет
+   LLM Prompt Mode — open temp file for prompt input
+   F5 sends, ESC cancels
    ══════════════════════════════════════════════════ */
 
 
 /* ══════════════════════════════════════════════════
    LLM Prompt Mode
-   Ctrl-W → выбор модели → открывается пустой файл
-   Пишешь промпт как обычный текст
-   Ctrl-O → отправляет, ESC → отменяет
+   Ctrl-W → select model → empty file opens
+   Type your prompt as plain text
+   Ctrl-O → sends, ESC → cancels
    ══════════════════════════════════════════════════ */
 
 static void editorFreeRowsOnly(void) {
@@ -2923,11 +2923,11 @@ static void editorEnterPromptMode(int slot) {
     g_prompt_llm_slot  = slot;
     g_prompt_mode      = 1;
 
-    /* Сохраняем весь ec */
+    /* Save entire ec */
     g_saved_ec       = ec;
     g_saved_ec_valid = 1;
 
-    /* Чистый ec для промпта */
+    /* Clean ec for prompt */
     ec.row                = NULL;
     ec.num_rows           = 0;
     ec.cursor_x           = 0;
@@ -2964,20 +2964,20 @@ static void editorSendPromptAndRestore(void) {
     int len = 0;
     char *content = editorRowsToString(&len);
 
-    /* Освобождаем prompt ec */
+    /* Free prompt ec */
     editorFreeRowsOnly();
     free(ec.file_name);
     freeAlist();
 
     g_prompt_mode = 0;
 
-    /* Восстанавливаем исходный ec */
+    /* Restore original ec */
     if (g_saved_ec_valid) {
         ec = g_saved_ec;
         g_saved_ec_valid = 0;
     }
 
-    /* Убираем финальные переносы */
+    /* Strip trailing newlines */
     while (len > 0 && (content[len-1] == '\n' || content[len-1] == '\r'))
         content[--len] = '\0';
 
@@ -2988,7 +2988,7 @@ static void editorSendPromptAndRestore(void) {
         return;
     }
 
-    /* Если это curl режим — отправляем через curl */
+    /* If curl mode — send via curl */
     if (g_prompt_use_curl) {
         g_prompt_use_curl = 0;
         remove(g_prompt_tmp_path);
@@ -2996,12 +2996,12 @@ static void editorSendPromptAndRestore(void) {
         return;
     }
 
-    /* Экранируем одинарные кавычки и -> для mshell */
+    /* Escape single quotes and -> for mshell */
     char *sq = malloc((size_t)len * 4 + 4);
     size_t si = 0;
     for (int i = 0; i < len; i++) {
         unsigned char ch = (unsigned char)content[i];
-        if (ch == 39) { /* одинарная кавычка */
+        if (ch == 39) { /* single quote */
             sq[si++]=39; sq[si++]=92; sq[si++]=39; sq[si++]=39;
         } else if (ch == 45 && i+1<len && (unsigned char)content[i+1]==62) {
             const char *r=" returns "; memcpy(sq+si,r,9); si+=9; i++;
@@ -3171,7 +3171,7 @@ char* callOllamaAPI(const char* prompt) {
 }
 
 
-/* Вставка через curl вызывается из editorSendPromptAndRestore когда g_prompt_use_curl=1 */
+/* curl insert called from editorSendPromptAndRestore when g_prompt_use_curl=1 */
 void editorInsertOllamaResponseCurl() {
     static char* config_path = NULL;
     if (!config_path) {
@@ -3182,12 +3182,12 @@ void editorInsertOllamaResponseCurl() {
         editorSetStatusMessage("Invalid Ollama config: ~/.config/mel/ollama.conf");
         return;
     }
-    /* Входим в prompt mode — тот же редактор что для Ctrl-W */
+    /* Enter prompt mode — same editor as Ctrl-W */
     g_prompt_use_curl = 1;
-    editorEnterPromptMode(0); /* slot=0 означает curl режим */
+    editorEnterPromptMode(0); /* slot=0 means curl mode */
 }
 
-/* Вызывается из editorSendPromptAndRestore для curl варианта */
+/* Called from editorSendPromptAndRestore for curl variant */
 static void editorSendCurlResponse(char *content) {
     char* response = callOllamaAPI(content);
     free(content);
@@ -3261,7 +3261,7 @@ void printHelp() {
 	printf("Ctrl-F        Search by pattern, Esc - exit from Search, Enter and Arrows to interact searching\n");
 	printf("Ctrl-N        Forward Search by pattern after Ctrl-F. Esc - exit from Search, works after Ctrl-F only\n");
 	printf("Ctrl-R        Backward Search by pattern after Ctrl-F. Esc - exit from Search, works after Ctrl-F only\n");
-    printf("Ctrl-J        Global replacement of сharacter combinations, Input Search and Replace patterns, Esc to cancel, Enter to input\n");
+    printf("Ctrl-J        Global replacement of character combinations, Input Search and Replace patterns, Esc to cancel, Enter to input\n");
 	printf("Ctrl-G        Go to line Number, requires input the line number\r\n");
 	printf("Ctrl-B        Hide/Show line numbering\n");
 	printf("Ctrl-E        Flip line upwards\n");
